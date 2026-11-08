@@ -1,45 +1,117 @@
-# PV Waste Forecasting — Bangladesh
+# Bangladesh PV Module Degradation, Lifetime and Waste Forecasting
 
-A research-oriented framework for modelling photovoltaic (PV) module lifetime, degradation, cohort retirement and end-of-life waste flows.
+A reproducible research framework for estimating photovoltaic (PV) module retirement and end-of-life waste by installation cohort. The project combines survival analysis, cohort forecasting, module-mass accounting, degradation modelling and material recovery scenarios.
 
-## Project contents
+> **Evidence status:** the bundled CSVs are synthetic demonstration data. The outputs are not an estimate of Bangladesh's current or future PV waste, and they must not be cited as empirical results. The project is a modelling framework that needs verified installation, retirement and module-mass data before a national forecast can be produced.
 
-- `src/pv_waste_forecasting/model.py`: two-parameter Weibull maximum-likelihood fit with right-censored lifetime observations, survival functions, conditional retirement probabilities and cohort waste forecasting.
-- `scripts/run_forecast.py`: fits the synthetic lifetime sample and generates an annual cohort forecast.
-- `config/base_case.json`: forecast horizon and illustrative settings.
-- `data/demo/`: synthetic lifetime and installation-cohort records.
-- `notebooks/01_pv_waste_forecasting_walkthrough.ipynb`: interactive walkthrough.
-- `tests/`: manual unit tests for survival, fitting and cohort logic.
-- `docs/`: methodology and data-provenance guidance.
+## Start here
 
-## Quick start
+New to the project? Read [the beginner guide](docs/BEGINNER_GUIDE.md) first. It explains the project in plain language, describes the files and walks through the full run.
+
+### Quick start
 
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install -e .
 pytest -q
 python scripts/run_forecast.py
 ```
 
-Open the notebook in JupyterLab, VS Code or Google Colab.
+The forecast script writes demonstration outputs under `outputs/`. These output files are excluded from version control so that generated results do not get confused with source data.
 
-## Modelling scope
+## What question does this project answer?
 
-The Weibull model estimates lifetime distribution parameters while using right-censored observations. Cohort projections convert commissioning-year capacity into expected annual retirements and module mass. The package also includes an optional Random Forest degradation demonstration.
+PV modules do not all retire at the same age. Some are replaced early; others remain in service longer than the nominal warranty period. A useful waste forecast therefore needs to account for:
 
-Technical retirement is not the same as collected waste. Refurbishment, second-life reuse, exports, storage, recycling and residual disposal require explicit flow assumptions.
+1. **How many modules were installed, and when?** This defines the fleet cohorts.
+2. **How long do modules remain in service?** A lifetime distribution describes retirement probability.
+3. **How much material is associated with each cohort?** Capacity must be translated into module mass using a documented mass-per-kW factor.
+4. **What happens after retirement?** Reuse, refurbishment, recycling, storage, export and disposal are different material pathways.
 
-## Data and limitations
+The framework keeps degradation and retirement separate. Degradation reduces energy output; it does not automatically mean a module has become waste.
 
-**All bundled CSVs and default values are synthetic or illustrative.** They are not Bangladesh installation records, measured degradation or a national PV waste estimate. Replace them with documented installation cohorts, observed failures and censoring information, module mass/composition data and validated degradation measurements before empirical use.
+## Modelling workflow
 
-A defensible research study should report uncertainty in Weibull parameters, test alternative lifetime assumptions, document data provenance and validate against independent observations.
+| Stage | What the code does | Main output |
+|---|---|---|
+| 1. Data audit | Checks observed lifetimes, censoring flags and cohort fields | Validated input tables |
+| 2. Lifetime estimation | Fits a two-parameter Weibull distribution with right-censored observations | Shape and scale estimates |
+| 3. Survival analysis | Calculates survival and conditional retirement probabilities | Survival curve and annual failure probabilities |
+| 4. Cohort projection | Applies retirement probabilities to capacity cohorts | Annual retired capacity |
+| 5. Mass conversion | Converts retired capacity to tonnes using module mass intensity | Annual module waste |
+| 6. Material pathways | Applies explicit reuse/recycling/recovery assumptions | Reuse, recovery and residual streams |
+| 7. Degradation demonstration | Compares ML regressors on a synthetic module-level dataset | Illustrative MAE, RMSE and R² |
+| 8. Sensitivity | Varies lifetime and material-flow assumptions | Scenario comparison |
 
-No GitHub Actions or CI workflow is configured. Tests are available for manual local execution.
+## Methods in plain language
+
+### Weibull lifetime model
+
+The Weibull distribution describes how the chance of retirement changes as a module gets older. Its shape parameter controls the pattern of the hazard rate; its scale parameter controls the age range over which retirement becomes likely.
+
+`S(t) = exp[-(t / lambda)^k]`
+
+where `S(t)` is the probability of surviving beyond age `t`, `k` is the shape, and `lambda` is the scale.
+
+The lifetime fit supports right-censored observations. A censored module is one that was still operating when observation ended. It must not be treated as if it failed on the last observation date.
+
+### Cohort waste forecast
+
+The model estimates the expected share of each installation cohort that retires during each year. It then converts that capacity into module mass. The unit conversion is:
+
+`waste tonnes = retired capacity (MW) × module mass (kg/kW)`
+
+This works numerically because 1 MW = 1,000 kW and 1 tonne = 1,000 kg.
+
+### Degradation model
+
+The optional Random Forest / Gradient Boosting exercise illustrates how module age, temperature, irradiation, humidity and technology indicators might be used to predict a degradation measure. Synthetic accuracy is only a demonstration of code execution. It is not evidence of predictive performance on Bangladesh modules.
+
+## Repository structure
+
+```text
+config/       editable forecast settings
+data/demo/    synthetic examples only
+docs/         beginner guide, methods, sources and provenance
+notebooks/    interactive end-to-end walkthrough
+scripts/      command-line forecast and sensitivity runs
+src/          reusable Python modelling modules
+tests/        unit tests
+outputs/      generated tables and figures (not committed)
+```
+
+See [the data dictionary and assumptions](docs/METHODOLOGY.md) and [data-source register](docs/DATA_SOURCES.md) before replacing demo inputs.
+
+## Bangladesh data: where to begin
+
+- **SREDA / National Database of Renewable Energy:** potential source for Bangladesh project and capacity records. Verify historical coverage and definitions before treating it as a commissioning-cohort dataset: https://ndre.sreda.gov.bd/
+- **Power Division, National Renewable Energy Strategy 2026–2030:** current policy context and related programme documents: https://powerdivision.gov.bd/pages/static-pages/694032be35ce18e1c0561a07
+- **Dhaka PV module dataset (2026):** a CC0 dataset reporting outdoor-exposed four-year-old modules in Mirpur, Dhaka. It may support a small degradation-method demonstration, but its 40-module sample is not representative of the national fleet: https://doi.org/10.7910/DVN/Q56G63
+- **Bangladesh PV waste literature:** useful background and research gap identification, not a substitute for observed national retirement data: https://doi.org/10.1016/j.heliyon.2022. e08970
+
+Record each data release, download date, licence, coverage, units, transformations and known gaps in `docs/DATA_PROVENANCE.md`. A recent installed-capacity snapshot is not a complete historical time series.
+
+## What is not yet modelled
+
+The current framework is intentionally transparent rather than pretending to solve every research problem. A full empirical study should consider technology-specific lifetime distributions, competing risks, early repowering, repair and refurbishment, parameter uncertainty, bootstrap or Bayesian intervals, independent validation and uncertainty in the installed base and module mass.
+
+## Research and engineering cautions
+
+- Do not mix MW, kW, kg and tonnes.
+- Do not treat censored assets as observed failures.
+- Do not equate technical retirement with collected waste.
+- Do not infer degradation rates from synthetic training data.
+- Keep module waste separate from inverter, cable, mounting and battery waste unless the study explicitly includes those components.
+- Report scenarios and uncertainty, not only a single deterministic line.
+
+## Reproducibility
+
+The included tests can be run with `pytest -q`. The notebook is a walkthrough, while the scripts provide repeatable command-line runs. No GitHub Actions or CI workflow is configured; testing is run manually.
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+MIT for the code. Dataset licences remain separate; check them before redistribution.
