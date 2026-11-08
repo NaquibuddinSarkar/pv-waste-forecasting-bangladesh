@@ -1,14 +1,18 @@
 # PV Waste Forecasting — Bangladesh
 
-A research-oriented framework for photovoltaic (PV) module end-of-life capacity and waste-flow forecasting. The complete project source package is provided in [source-code.zip](./source-code.zip).
+A research-oriented framework for modelling photovoltaic (PV) module lifetime, degradation, cohort retirement and end-of-life waste flows.
 
-## What is included
+## Project contents
 
-The source archive contains the Python package, a walkthrough notebook, Weibull survival and right-censored lifetime estimation, cohort-based retirement forecasts, degradation model demonstrations, scenario/sensitivity scripts, sample CSV datasets, tests, methodology notes and data-source registers.
+- `src/pv_waste_forecasting/model.py`: two-parameter Weibull maximum-likelihood fit with right-censored lifetime observations, survival functions, conditional retirement probabilities and cohort waste forecasting.
+- `scripts/run_forecast.py`: fits the synthetic lifetime sample and generates an annual cohort forecast.
+- `config/base_case.json`: forecast horizon and illustrative settings.
+- `data/demo/`: synthetic lifetime and installation-cohort records.
+- `notebooks/01_pv_waste_forecasting_walkthrough.ipynb`: interactive walkthrough.
+- `tests/`: manual unit tests for survival, fitting and cohort logic.
+- `docs/`: methodology and data-provenance guidance.
 
 ## Quick start
-
-Download and extract [source-code.zip](./source-code.zip), then run from the extracted project directory:
 
 ```bash
 python -m venv .venv
@@ -20,14 +24,22 @@ pytest -q
 python scripts/run_forecast.py
 ```
 
-## Data status
+Open the notebook in JupyterLab, VS Code or Google Colab.
 
-Bundled CSVs and base-case values are synthetic or illustrative. They are not Bangladesh installation records, measured degradation or a national PV waste estimate. The source package includes a data-provenance register and candidate public sources. Replace the demo data with documented data before empirical research.
+## Modelling scope
 
-## Scope and limitations
+The Weibull model estimates lifetime distribution parameters while using right-censored observations. Cohort projections convert commissioning-year capacity into expected annual retirements and module mass. The package also includes an optional Random Forest degradation demonstration.
 
-The modelling framework separates technical retirement from actual waste generation and includes explicit reuse, recycling and residual-disposal assumptions. Any empirical or policy conclusion requires validated cohort data, censoring definitions, material composition data and uncertainty analysis.
+Technical retirement is not the same as collected waste. Refurbishment, second-life reuse, exports, storage, recycling and residual disposal require explicit flow assumptions.
 
-**No GitHub Actions or CI workflow is included, as requested.** Local tests are retained so the package can be checked manually.
+## Data and limitations
 
-[Download complete source package](./source-code.zip)
+**All bundled CSVs and default values are synthetic or illustrative.** They are not Bangladesh installation records, measured degradation or a national PV waste estimate. Replace them with documented installation cohorts, observed failures and censoring information, module mass/composition data and validated degradation measurements before empirical use.
+
+A defensible research study should report uncertainty in Weibull parameters, test alternative lifetime assumptions, document data provenance and validate against independent observations.
+
+No GitHub Actions or CI workflow is configured. Tests are available for manual local execution.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
