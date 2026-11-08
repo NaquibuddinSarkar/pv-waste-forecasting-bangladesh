@@ -92,14 +92,15 @@ def forecast_cohort_waste(cohorts: pd.DataFrame, base_year: int, forecast_years,
         failed_kw = 0.0
         waste_kg = 0.0
         for row in cohorts.itertuples(index=False):
-            age_base = max(base_year - int(row.commissioning_year), 0)
-            age_target = max(int(year) - int(row.commissioning_year), 0)
             if year <= base_year:
                 continue
-            active_base_fraction = survival_probability(age_base, shape, scale_years)
-            active_target_fraction = survival_probability(age_target, shape, scale_years)
-            failed_fraction = max(active_base_fraction - active_target_fraction, 0.0)
-            # Scale the remaining installed cohort relative to its surviving fraction at base year.
+            # Annual retirement flow: survival from the start of this calendar year
+            # to the end of this year, rather than cumulative retirements since base year.
+            age_start = max(int(year) - 1 - int(row.commissioning_year), 0)
+            age_end = max(int(year) - int(row.commissioning_year), 0)
+            survival_start = survival_probability(age_start, shape, scale_years)
+            survival_end = survival_probability(age_end, shape, scale_years)
+            failed_fraction = max(survival_start - survival_end, 0.0)
             expected_failed = float(row.installed_capacity_kw) * failed_fraction
             failed_kw += expected_failed
             waste_kg += expected_failed * float(row.module_mass_kg_per_kw)
