@@ -5,5 +5,8 @@
   "weibull_shape_demo": 3,
   "weibull_scale_years_demo": 28,
   "module_mass_kg_per_kw": 70,
-  "scenario_note": "Synthetic demonstration assumptions only; replace with documented Bangladesh installation and lifetime data."
+  "scenario_note": "Synthetic demonstration assumptions only; replace with documented Bangladesh installation, lifetime, module mass and material-flow data.",
+  "reuse_share_demo": 0.1,
+  "recycling_share_of_nonreuse_demo": 0.7,
+  "recycling_yield_demo": 0.82
 }
