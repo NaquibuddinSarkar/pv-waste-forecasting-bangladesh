@@ -6,7 +6,7 @@ A reproducible research framework for estimating photovoltaic (PV) module retire
 
 ## Start here
 
-New to the project? Read [the beginner guide](docs/BEGINNER_GUIDE.md) first. It explains the project in plain language, describes the files and walks through the full run.
+New to the project? Read [the beginner guide](docs/BEGINNER_GUIDE.md) first. It explains the project in plain language, describes the files and walks through the full run. The [data dictionary](docs/DATA_DICTIONARY.md) defines each input field, and the [data-source register](docs/DATA_SOURCES.md) explains what Bangladesh-specific evidence is still needed.
 
 ### Quick start
 
@@ -19,6 +19,7 @@ pip install -r requirements.txt
 pip install -e .
 pytest -q
 python scripts/run_forecast.py
+python scripts/run_degradation_models.py
 ```
 
 The forecast script writes demonstration outputs under `outputs/`. These output files are excluded from version control so that generated results do not get confused with source data.
@@ -32,7 +33,7 @@ PV modules do not all retire at the same age. Some are replaced early; others re
 3. **How much material is associated with each cohort?** Capacity must be translated into module mass using a documented mass-per-kW factor.
 4. **What happens after retirement?** Reuse, refurbishment, recycling, storage, export and disposal are different material pathways.
 
-The framework keeps degradation and retirement separate. Degradation reduces energy output; it does not automatically mean a module has become waste.
+The framework keeps degradation and retirement separate. Degradation reduces energy output; it does not automatically mean a module has become waste. The new ML workflow splits by physical module ID, so repeated observations from one module cannot appear in both train and test sets. To include XGBoost, install `pip install -r requirements-xgboost.txt` and call `compare_degradation_models(..., include_xgboost=True)`.
 
 ## Modelling workflow
 
