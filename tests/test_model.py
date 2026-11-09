@@ -67,8 +67,14 @@ def test_cohort_forecast_nonnegative_and_unit_conversion():
     assert len(result) == 2
     assert (result["expected_retired_capacity_kw"] >= 0).all()
     assert (result["expected_module_waste_tonnes"] >= 0).all()
-    assert result["expected_module_waste_tonnes"].iloc[0] == pytest.approx(
-        result["expected_retired_capacity_kw"].iloc[0] * 70 / 1000
+    single = pd.DataFrame({
+        "commissioning_year": [2015],
+        "installed_capacity_kw": [1000],
+        "module_mass_kg_per_kw": [70],
+    })
+    one = forecast_cohort_waste(single, 2025, [2026], 3.0, 28.0)
+    assert one["expected_module_waste_tonnes"].iloc[0] == pytest.approx(
+        one["expected_retired_capacity_kw"].iloc[0] * 70 / 1000
     )
 
 
