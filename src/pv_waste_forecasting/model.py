@@ -201,8 +201,10 @@ def forecast_cohort_waste(
         for row in data.itertuples(index=False):
             if row.commissioning_year > year:
                 continue
-            age_start = max(int(year) - 1 - row.commissioning_year, 0)
-            age_end = max(int(year) - row.commissioning_year, 0)
+            # Commissioning is defined at the start of the calendar year.
+            # At the start of forecast year Y, cohort age is Y - commissioning_year.
+            age_start = max(int(year) - row.commissioning_year, 0)
+            age_end = age_start + 1
             s_start = float(survival_probability(age_start, shape, scale_years))
             s_end = float(survival_probability(age_end, shape, scale_years))
             retired_fraction = max(s_start - s_end, 0.0)
