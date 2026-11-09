@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from pv_waste_forecasting.model import (
     fit_weibull_lifetime,
+    bootstrap_weibull_lifetime,
     forecast_cohort_waste,
     apply_material_pathways,
 )
@@ -25,6 +26,13 @@ def main():
     fit = fit_weibull_lifetime(
         lifetime["observed_lifetime_years"],
         lifetime["event_observed"],
+    )
+    bootstrap_ci = bootstrap_weibull_lifetime(
+        lifetime["observed_lifetime_years"],
+        lifetime["event_observed"],
+        n_bootstrap=100,
+        confidence_level=0.95,
+        random_state=42,
     )
     years = np.arange(
         settings["forecast_start_year"],
@@ -49,9 +57,14 @@ def main():
     forecast.to_csv(output / "pv_waste_forecast_demo.csv", index=False)
     pathways.to_csv(output / "pv_material_pathways_demo.csv", index=False)
     (output / "weibull_fit_demo.json").write_text(json.dumps(fit, indent=2))
+    (output / "weibull_bootstrap_intervals_demo.json").write_text(
+        json.dumps(bootstrap_ci, indent=2)
+    )
 
     print("WEIBULL LIFETIME FIT — SYNTHETIC DATA")
     print(json.dumps(fit, indent=2))
+    print("\\n95% PARAMETER INTERVALS — PAIRED BOOTSTRAP")
+    print(json.dumps(bootstrap_ci, indent=2))
     print("\nANNUAL PV RETIREMENT FORECAST — DEMONSTRATION ONLY")
     print(forecast.head(10).to_string(index=False))
     print("\nMATERIAL PATHWAYS — ILLUSTRATIVE SHARES")
