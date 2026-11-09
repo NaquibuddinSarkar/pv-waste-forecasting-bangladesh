@@ -15,6 +15,7 @@ from pv_waste_forecasting.model import (
     conditional_retirement_probability,
     forecast_cohort_waste,
     apply_material_pathways,
+    bootstrap_weibull_lifetime,
 )
 
 
@@ -100,3 +101,17 @@ def test_material_pathway_rejects_invalid_fraction():
     forecast = forecast_cohort_waste(sample_cohorts(), 2025, [2026], 3.0, 28.0)
     with pytest.raises(ValueError):
         apply_material_pathways(forecast, reuse_share=1.2)
+
+
+def test_weibull_bootstrap_returns_ordered_intervals():
+    rng = np.random.default_rng(2026)
+    true_lifetime = rng.weibull(3.0, 180) * 25.0
+    censor_time = 18.0
+    observed = np.minimum(true_lifetime, censor_time)
+    event = true_lifetime <= censor_time
+    result = bootstrap_weibull_lifetime(
+        observed, event, n_bootstrap=30, confidence_level=0.90, random_state=7
+    )
+    assert result["n_bootstrap_valid"] >= 20
+    assert result["shape_lower"] <= result["shape_median"] <= result["shape_upper"]
+    assert result["scale_years_lower"] <= result["scale_years_median"] <= result["scale_years_upper"]
