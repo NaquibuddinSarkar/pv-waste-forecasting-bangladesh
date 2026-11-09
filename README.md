@@ -70,7 +70,7 @@ This works numerically because 1 MW = 1,000 kW and 1 tonne = 1,000 kg.
 
 ### Degradation model
 
-The optional Random Forest / Gradient Boosting exercise illustrates how module age, temperature, irradiation, humidity and technology indicators might be used to predict a degradation measure. Synthetic accuracy is only a demonstration of code execution. It is not evidence of predictive performance on Bangladesh modules.
+The dedicated degradation workflow compares Random Forest and Extra Trees, with optional XGBoost. It uses a grouped split by module ID so repeated observations from the same physical panel do not leak between train and test. The bundled example panel is synthetic, so model scores and permutation importance demonstrate the workflow only; they are not evidence of Bangladesh degradation rates.
 
 ## Repository structure
 
@@ -85,7 +85,7 @@ tests/        unit tests
 outputs/      generated tables and figures (not committed)
 ```
 
-See [the data dictionary and assumptions](docs/METHODOLOGY.md) and [data-source register](docs/DATA_SOURCES.md) before replacing demo inputs.
+See the [data dictionary](docs/DATA_DICTIONARY.md), [methodology](docs/METHODOLOGY.md), [data-source register](docs/DATA_SOURCES.md) and [provenance template](docs/DATA_PROVENANCE.md) before replacing demo inputs.
 
 ## Bangladesh data: where to begin
 
