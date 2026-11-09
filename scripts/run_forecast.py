@@ -63,7 +63,7 @@ def main():
 
     print("WEIBULL LIFETIME FIT — SYNTHETIC DATA")
     print(json.dumps(fit, indent=2))
-    print("\\n95% PARAMETER INTERVALS — PAIRED BOOTSTRAP")
+    print("\n95% PARAMETER INTERVALS — PAIRED BOOTSTRAP")
     print(json.dumps(bootstrap_ci, indent=2))
     print("\nANNUAL PV RETIREMENT FORECAST — DEMONSTRATION ONLY")
     print(forecast.head(10).to_string(index=False))
