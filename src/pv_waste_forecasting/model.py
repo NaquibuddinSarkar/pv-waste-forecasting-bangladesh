@@ -268,44 +268,80 @@ def apply_material_pathways(
     return out
 
 
-def degradation_prediction_frame(df, target_col="annual_degradation"):
-    """Fit a clearly labelled Random Forest degradation demonstration.
+def bootstrap_weibull_lifetime(
+    lifetimes_years,
+    event_observed,
+    n_bootstrap=200,
+    confidence_level=0.95,
+    random_state=42,
+):
+    """Estimate percentile intervals for Weibull parameters by paired bootstrap.
 
-    This helper is intended for learning and should not be used to claim
-    Bangladesh-specific accuracy without a representative, independent data
-    set. If multiple rows belong to the same physical module, use a grouped
-    split by module ID rather than a random row split.
+    The lifetime and event/censoring flag are resampled together. This
+    quantifies sampling uncertainty under the fitted homogeneous Weibull
+    model; it does not account for selection bias, site clustering or
+    uncertainty in the installed fleet and module mass.
     """
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-    from sklearn.model_selection import train_test_split
+    t = _finite_vector(lifetimes_years, "lifetimes_years")
+    event = np.asarray(event_observed)
+    if event.ndim != 1 or len(event) != len(t):
+        raise ValueError("event_observed must match lifetimes_years")
+    if not isinstance(n_bootstrap, (int, np.integer)) or n_bootstrap < 20:
+        raise ValueError("n_bootstrap must be an integer of at least 20")
+    if not np.isfinite(confidence_level) or not 0.5 < confidence_level < 1:
+        raise ValueError("confidence_level must be between 0.5 and 1")
 
-    features = ["module_age_years", "mean_temperature_c", "irradiance_kwh_m2_day"]
-    required = set(features + [target_col])
-    if not required.issubset(df.columns):
-        raise ValueError(f"data must contain {sorted(required)}")
-    sample = df[list(required)].apply(pd.to_numeric, errors="raise").dropna()
-    if len(sample) < 20:
-        raise ValueError("at least 20 complete rows are required for the demonstration")
-    if not np.isfinite(sample.to_numpy()).all():
-        raise ValueError("degradation data must be finite")
-    if (sample[target_col] < 0).any():
-        raise ValueError("degradation target must be non-negative")
+    rng = np.random.default_rng(random_state)
+    shape_values = []
+    scale_values = []
+    n = len(t)
+    for _ in range(int(n_bootstrap)):
+        indices = rng.integers(0, n, size=n)
+        try:
+            fit = fit_weibull_lifetime(t[indices], event[indices])
+        except (ValueError, RuntimeError):
+            continue
+        shape_values.append(fit["shape"])
+        scale_values.append(fit["scale_years"])
 
-    x_train, x_test, y_train, y_test = train_test_split(
-        sample[features], sample[target_col], test_size=0.25, random_state=42
-    )
-    model = RandomForestRegressor(
-        n_estimators=300, min_samples_leaf=3, max_features=1.0,
-        random_state=42, n_jobs=-1
-    )
-    model.fit(x_train, y_train)
-    prediction = model.predict(x_test)
-    metrics = {
-        "MAE": float(mean_absolute_error(y_test, prediction)),
-        "RMSE": float(np.sqrt(mean_squared_error(y_test, prediction))),
-        "R2": float(r2_score(y_test, prediction)),
-        "test_rows": int(len(y_test)),
-        "note": "Synthetic/illustrative benchmark only; validate on independent module-level observations.",
+    minimum_valid = max(20, int(0.7 * n_bootstrap))
+    if len(shape_values) < minimum_valid:
+        raise RuntimeError(
+            f"only {len(shape_values)} of {n_bootstrap} bootstrap fits succeeded; "
+            "check event counts and censoring structure"
+        )
+
+    alpha = (1.0 - confidence_level) / 2.0
+    return {
+        "confidence_level": float(confidence_level),
+        "n_bootstrap_requested": int(n_bootstrap),
+        "n_bootstrap_valid": int(len(shape_values)),
+        "shape_median": float(np.median(shape_values)),
+        "shape_lower": float(np.quantile(shape_values, alpha)),
+        "shape_upper": float(np.quantile(shape_values, 1.0 - alpha)),
+        "scale_years_median": float(np.median(scale_values)),
+        "scale_years_lower": float(np.quantile(scale_values, alpha)),
+        "scale_years_upper": float(np.quantile(scale_values, 1.0 - alpha)),
+        "note": "Percentile paired-bootstrap intervals conditional on model and sampling assumptions.",
     }
-    return model, metrics
+
+
+def degradation_prediction_frame(df, target_col="annual_degradation_rate"):
+    """Backward-compatible wrapper using module-grouped validation.
+
+    The current implementation uses the dedicated degradation module so
+    repeated observations from one module cannot leak across train/test.
+    """
+    from .degradation import compare_degradation_models
+
+    result = compare_degradation_models(df, target_col=target_col)
+    best_name = result["best_model_name"]
+    best = result["comparison"].set_index("model").loc[best_name]
+    metrics = {
+        "MAE": float(best["MAE"]),
+        "RMSE": float(best["RMSE"]),
+        "R2": float(best["R2"]),
+        "model": best_name,
+        "validation_method": result["validation_method"],
+    }
+    return result["models"][best_name], metrics
